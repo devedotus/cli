@@ -1,0 +1,28 @@
+{
+    "name": "deve/cli",
+    "description": "WP-CLI package for Simple Wordpress Orchestration",
+    "type": "wp-cli-package",
+    "homepage": "https://github.com/devedotus/cli",
+    "support": {
+        "issues": "https://github.com/devedotus/cli/issues"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Thomas Stachl",
+            "email": "thomas@deve.us",
+            "homepage": "https://deve.us"
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "autoload": {
+        "files": [ "command.php" ]
+    },
+    "require": {
+        "wp-cli/wp-cli": "^1.1.0"
+    },
+    "require-dev": {
+        "behat/behat": "~2.5"
+    }
+}
