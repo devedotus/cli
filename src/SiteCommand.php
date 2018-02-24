@@ -89,7 +89,7 @@ class SiteCommand {
     $files_written = $this->process_files( array(
       "{$assoc_args['nginx-dir']}/sites-available/{$assoc_args['domain']}.conf" => Utils\mustache_render( "{$template_path}/nginx.mustache", $assoc_args ),
       "{$assoc_args['php-dir']}/php-available/{$assoc_args['domain']}.conf"   => Utils\mustache_render( "{$template_path}/php-pool.mustache", $assoc_args )
-    ), $force );
+    ), $force, 'file_put_contents' );
     
 		// create the www root dir
 		$wwwdir = "{$assoc_args['www-dir']}/{$assoc_args['domain']}";
@@ -104,7 +104,12 @@ class SiteCommand {
     }
     
     if ( Utils\get_flag_value( $assoc_args, 'activate' ) ) {
-      WP_CLI::runcommand( "deve site-activate {$assoc_args['domain']} --nginx-dir={$assoc_args['nginx-dir']}", array( 'launch' => false ) );
+      $force = $force ? '--force' : '';
+      $command = "deve site-activate {$assoc_args['domain']} " .
+                        "--nginx-dir={$assoc_args['nginx-dir']} " .
+                        "--php-dir={$assoc_args['php-dir']} " .
+                        "--www-dir={$assoc_args['www-dir']} {$force}";
+      WP_CLI::runcommand( $command, array( 'launch' => false ) );
     }
   }
   
@@ -130,6 +135,9 @@ class SiteCommand {
    *
    * [--www-dir=<www-dir>]
    * : Specify a WWW directory for the command. Defaults to WWW's `/var/www` directory.
+	 * 
+	 * [--force]
+	 * : Overwrite files that already exist.
 	 *
 	 * @when before_wp_load
    */
@@ -141,10 +149,10 @@ class SiteCommand {
     
     $assoc_args = array_merge( $defaults, $assoc_args );
     $assoc_args['domain'] = $args[0];
-    
-		$nginx_available = "{$assoc_args['nginx-dir']}/sites-available/{$assoc_args['domain']}.conf";
-		$php_available = "{$assoc_args['php-dir']}/php-available/{$assoc_args['domain']}.conf";
-		
+    $nginx_available = "{$assoc_args['nginx-dir']}/sites-available/{$assoc_args['domain']}.conf";
+    $php_available = "{$assoc_args['php-dir']}/php-available/{$assoc_args['domain']}.conf";
+    $force = Utils\get_flag_value( $assoc_args, 'force' );
+
     if ( ! file_exists( $nginx_available ) ) {
 			WP_CLI::error( "Nginx configuration for '{$assoc_args['domain']}' does not exist." );
 		}
@@ -153,12 +161,13 @@ class SiteCommand {
 			WP_CLI::error( "PHP pool configuration for '{$assoc_args['domain']}' does not exist." );
 		}
 		
-		$files_linked = $this->process_files( array(
-			
-		), $force, '');
-		
 		$nginx_enabled = str_replace( '/sites-available/', '/sites-enabled/', $nginx_available );
 		$php_enabled = str_replace( '/php-available/', '/php-fpm.d/', $php_available );
+		
+		$files_linked = $this->process_files( array(
+			$nginx_enabled => $nginx_available,
+			$php_enabled => $php_available
+		), $force, 'symlink');
 
   }
   
@@ -182,24 +191,11 @@ class SiteCommand {
 		$outcome = $should_write_file ? 'Replacing' : 'Skipping';
 		WP_CLI::log( $outcome . PHP_EOL );
 		return $should_write_file;
-	}
-  
-	private function create_symlinks( $source_and_targets, $force ) {
-		$created_files = array();
-		foreach ( $source_and_targets as $source => $target ) {
-			$should_write_file = $this->prompt_if_files_will_be_overwritten( $target, $force );
-			if ( ! $should_write_file ) {
-				continue;
-			}
-			if ( ! is_dir( dirname( $target ) ) ) {
-				Process::create( Utils\esc_cmd( 'mkdir -p'))
-			}
-		}
-	}
+  }
 	
-	private function process_files( $files, $force, $processor => 'file_put_contents' ) {
+	private function process_files( $files, $force, $processor ) {
 		$wrote_files = array();
-		foreach ( $files_and_contents as $filename => $contents ) {
+		foreach ( $files as $filename => $contents ) {
 			$should_write_file = $this->prompt_if_files_will_be_overwritten( $filename, $force );
 			if ( ! $should_write_file ) {
 				continue;
@@ -217,7 +213,7 @@ class SiteCommand {
 	}
 	
 	private function symlink( $target, $source ) {
-		return symlink( $source, $target );
+		return symlink( realpath( $source ), realpath( dirname( $target ) ) . "/" . basename( $target ) );
 	}
 	
 	private function file_put_contents( $file, $content ) {
