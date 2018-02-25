@@ -11,3 +11,5 @@ if ( file_exists( $autoload ) ) {
 
 WP_CLI::add_command( 'deve site', array( 'Deve_CLI\SiteCommand', 'site' ) );
 WP_CLI::add_command( 'deve site-activate', array( 'Deve_CLI\SiteCommand', 'site_activate' ) );
+WP_CLI::add_command( 'deve site-deactivate', array( 'Deve_CLI\SiteCommand', 'site_deactivate' ) );
+WP_CLI::add_command( 'deve restart', array( 'Deve_CLI\RestartCommand', 'restart' ) );

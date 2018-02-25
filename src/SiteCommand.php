@@ -46,10 +46,10 @@ class SiteCommand {
 	 *
 	 * [--hhvm]
 	 * : Create the site with hhvm instead of php
-	 * 
+	 *
 	 * [--pagespeed]
 	 * : Enable google pagespeed for the site
-	 * 
+	 *
 	 * [--force]
 	 * : Overwrite files that already exist.
 	 *
@@ -104,21 +104,21 @@ class SiteCommand {
     }
     
     if ( Utils\get_flag_value( $assoc_args, 'activate' ) ) {
-      $force = $force ? '--force' : '';
       $command = "deve site-activate {$assoc_args['domain']} " .
                         "--nginx-dir={$assoc_args['nginx-dir']} " .
                         "--php-dir={$assoc_args['php-dir']} " .
-                        "--www-dir={$assoc_args['www-dir']} {$force}";
+                        "--www-dir={$assoc_args['www-dir']}";
       WP_CLI::runcommand( $command, array( 'launch' => false ) );
     }
   }
   
 	/**
-	 * Activates a site, creates users and groups, reloads the services.
+	 * Activates a site, reloads the services.
 	 *
 	 * Default behavior is to create the following files:
 	 * - symlinks site into sites-enabled
 	 * - symlinks pool into php-fpm.d
+	 * - creates the certificates
 	 * - starts the pool and verifies it running
 	 * - reloads the nginx configuration (hotswap)
 	 *
@@ -135,23 +135,19 @@ class SiteCommand {
    *
    * [--www-dir=<www-dir>]
    * : Specify a WWW directory for the command. Defaults to WWW's `/var/www` directory.
-	 * 
-	 * [--force]
-	 * : Overwrite files that already exist.
 	 *
 	 * @when before_wp_load
    */
   public function site_activate( $args, $assoc_args ) {
     $defaults = array(
       'nginx-dir' => '/etc/nginx',
-			'php-di' => '/usr/local/etc'
+			'php-dir' => '/usr/local/etc'
     );
     
     $assoc_args = array_merge( $defaults, $assoc_args );
     $assoc_args['domain'] = $args[0];
     $nginx_available = "{$assoc_args['nginx-dir']}/sites-available/{$assoc_args['domain']}.conf";
     $php_available = "{$assoc_args['php-dir']}/php-available/{$assoc_args['domain']}.conf";
-    $force = Utils\get_flag_value( $assoc_args, 'force' );
 
     if ( ! file_exists( $nginx_available ) ) {
 			WP_CLI::error( "Nginx configuration for '{$assoc_args['domain']}' does not exist." );
@@ -161,14 +157,80 @@ class SiteCommand {
 			WP_CLI::error( "PHP pool configuration for '{$assoc_args['domain']}' does not exist." );
 		}
 		
-		$nginx_enabled = str_replace( '/sites-available/', '/sites-enabled/', $nginx_available );
-		$php_enabled = str_replace( '/php-available/', '/php-fpm.d/', $php_available );
-		
-		$files_linked = $this->process_files( array(
-			$nginx_enabled => $nginx_available,
-			$php_enabled => $php_available
-		), $force, 'symlink');
+  	$nginx_enabled = str_replace( '/sites-available/', '/sites-enabled/', $nginx_available );
+  	$php_enabled = str_replace( '/php-available/', '/php-fpm.d/', $php_available );
+	
+  	$files_linked = $this->process_files( array(
+  		$nginx_enabled => $nginx_available,
+  		$php_enabled => $php_available
+  	), false, 'symlink');
+    
+    if ( empty( $files_linked ) ) {
+      WP_CLI::log( 'All configuration files were skipped.' );
+    } else {
+      WP_CLI::success( 'Linked configuration files for nginx and php.' );
+    }
+    
+    WP_CLI::runcommand( "deve certbot {$assoc_args['domain']}", array( 'launch' => false ) );
+  }
+  
+	/**
+	 * Deactivates a site, reloads the services.
+	 *
+	 * Default behavior is to create the following files:
+	 * - unlinks site into sites-enabled
+	 * - unlinks pool into php-fpm.d
+	 * - starts the pool and verifies it running
+	 * - reloads the nginx configuration (hotswap)
+	 *
+	 * ## OPTIONS
+	 *
+	 * <domain>
+	 * : The domain of the new site. E.g. example.com
+   *
+   * [--nginx-dir=<nginx-dir>]
+   * : Specify a Nginx directory for the command. Defaults to Nginx's `/etc/nginx/sites-available` directory.
+   *
+   * [--php-dir=<php-dir>]
+   * : Specify a PHP directory for the command. Defaults to PHP's `/usr/local/etc/php-available` directory.
+   *
+   * [--www-dir=<www-dir>]
+   * : Specify a WWW directory for the command. Defaults to WWW's `/var/www` directory.
+	 *
+	 * @when before_wp_load
+   */
+  public function site_deactivate( $args, $assoc_args ) {
+    $defaults = array(
+      'nginx-dir' => '/etc/nginx',
+			'php-dir' => '/usr/local/etc'
+    );
+    
+    $assoc_args = array_merge( $defaults, $assoc_args );
+    $assoc_args['domain'] = $args[0];
+    
+    $nginx_enabled = "{$assoc_args['nginx-dir']}/sites-enabled/{$assoc_args['domain']}.conf";
+    $php_enabled = "{$assoc_args['php-dir']}/php-fpm.d/{$assoc_args['domain']}.conf";
 
+    if ( ! file_exists( $nginx_enabled ) ) {
+			WP_CLI::error( "Nginx configuration for '{$assoc_args['domain']}' does not exist." );
+		}
+		
+    if ( ! file_exists( $php_enabled ) ) {
+      var_dump($php_available);
+			WP_CLI::error( "PHP pool configuration for '{$assoc_args['domain']}' does not exist." );
+		}
+	
+  	$nginx = unlink( $nginx_enabled );
+  	$php = unlink( $php_enabled );
+    
+    if ( !$nginx || !$php ) {
+      if ( !$nginx ) WP_CLI::log( 'Nginx configuration could not be removed.' );
+      if ( !$php ) WP_CLI::log( 'PHP configuration could not be removed.' );
+    } else {
+      WP_CLI::success( 'Unlinked configuration files for nginx and php.' );
+    }
+    
+    WP_CLI::runcommand( "deve restart", array( 'launch' => false ) );
   }
   
 	private function prompt_if_files_will_be_overwritten( $filename, $force ) {
