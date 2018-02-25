@@ -392,12 +392,32 @@ class SiteCommand {
   }
 
   /**
+   * Create an SSL certificate for the provided domain.
+   *
+   * Default behavior is:
+   * - stop deve_web
+   * - create a certbot container
+   * - run certbot container
+   * - wait until certbot is complete
+   * - restart deve_web
+   *
+   * ## OPTIONS
+   *
+   * <domain>
+   * : The domain of the new site. E.g. example.com
+   *
+   * <email>
+   * : The email to use for certbot. E.g. jdoe@example.com
+   *
+   * [--dry-run]
+   * : Only test if certificates would work.
+   *
    * @when before_wp_load
    */
   public function site_ssl( $args, $assoc_args ) {
     $assoc_args = array_merge( static::DEFAULTS, $assoc_args );
-    $assoc_args['domain'] = $args[0];
-
+    $domain = $args[0];
+    $email = $args[1];
 
     $client = DockerClient::getInstance();
     $containers =  $client->find_containers( array(
@@ -415,16 +435,21 @@ class SiteCommand {
       }
     }
 
+    $cmd = array( 'certonly', '--standalone', '-n', '--agree-tos', '-m', $email, '-d', $domain );
+    if (Utils\get_flag_value( $assoc_args, 'dry-run' ) ) {
+      array_push( $cmd, '--dry-run' );
+    }
+
     $ssl = $client->run( array(
       'Image' => 'certbot/certbot',
       'Binds' => array( 'deve_ssl:/etc/letsencrypt' ),
       'PortBindings' => array( '80/tcp' => array( array( 'HostPort' => '80' ) ) ),
-      'Cmd' => array( 'certonly', '--standalone', '--dry-run', '--agree-tos', '-m', 'thomas@stachl.me', '-d', $assoc_args['domain'] )
+      'Cmd' => $cmd
     ) );
     if ( $ssl ) {
       WP_CLI::success( 'The SSL certificate has been created.' );
     } else {
-      WP_CLI::error( 'Could not create the certificate.' );
+      WP_CLI::warning( 'Could not create the certificate.' );
     }
 
     foreach ( $containers->getDecodedBody() as $container ) {
