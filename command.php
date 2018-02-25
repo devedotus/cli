@@ -9,7 +9,11 @@ if ( file_exists( $autoload ) ) {
 	require_once $autoload;
 }
 
-WP_CLI::add_command( 'deve site', array( 'Deve_CLI\SiteCommand', 'site' ) );
-WP_CLI::add_command( 'deve site-activate', array( 'Deve_CLI\SiteCommand', 'site_activate' ) );
-WP_CLI::add_command( 'deve site-deactivate', array( 'Deve_CLI\SiteCommand', 'site_deactivate' ) );
-WP_CLI::add_command( 'deve restart', array( 'Deve_CLI\RestartCommand', 'restart' ) );
+WP_CLI::add_command( 'deve site create', array( 'Deve_CLI\SiteCommand', 'site_create' ) );
+WP_CLI::add_command( 'deve site delete', array( 'Deve_CLI\SiteCommand', 'site_delete' ) );
+WP_CLI::add_command( 'deve site list', array( 'Deve_CLI\SiteCommand', 'site_list' ) );
+WP_CLI::add_command( 'deve site activate', array( 'Deve_CLI\SiteCommand', 'site_activate' ) );
+WP_CLI::add_command( 'deve site deactivate', array( 'Deve_CLI\SiteCommand', 'site_deactivate' ) );
+// WP_CLI::add_command( 'deve site ssl', array( 'Deve_CLI\SiteCommand', 'site_ssl' ) );
+
+WP_CLI::add_command( 'deve server restart', array( 'Deve_CLI\RestartCommand', 'restart' ) );
