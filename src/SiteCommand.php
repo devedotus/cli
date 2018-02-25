@@ -6,6 +6,7 @@ use WP_CLI;
 use WP_CLI\Process;
 use WP_CLI\Utils;
 use WP_CLI\Formatter;
+use Deve_CLI\Docker\DockerClient;
 
 class SiteCommand {
   const DEFAULTS = array(
@@ -20,6 +21,7 @@ class SiteCommand {
     'default-server' => false,
     'activate' => false,
     'force' => false,
+    'ssl' => true,
     'nginx-dir' => '/etc/nginx',
     'php-dir' => '/usr/local/etc',
     'www-dir' => '/var/www'
@@ -80,7 +82,7 @@ class SiteCommand {
       $files[$key] = $file;
     }
 
-    $formatter = new WP_CLI\Formatter( $assoc_args, array( 'domain', 'active', 'default-server' ) );
+    $formatter = new WP_CLI\Formatter( $assoc_args, array( 'domain', 'active', 'default-server', 'ssl' ) );
     $formatter->display_items( $files );
   }
 
@@ -130,6 +132,9 @@ class SiteCommand {
    * [--activate]
    * : Don't generate files for integration testing.
    *
+   * [--skip-ssl]
+   * : Don't add ssl certificates to nginx config.
+   *
    * [--force]
    * : Overwrite files that already exist.
    *
@@ -145,12 +150,20 @@ class SiteCommand {
    * @when before_wp_load
    */
   public function site_create( $args, $assoc_args ) {
+    $skip_ssl = Utils\get_flag_value( $assoc_args, 'skip-ssl' );
+    unset( $assoc_args['skip-ssl'] );
+
     $assoc_args = array_merge( static::DEFAULTS, $assoc_args );
     $assoc_args['domain'] = $args[0];
 
     // if neither wpsubdir nor wpsubdom are set it's a single site
     $assoc_args['wpss'] = ( $assoc_args['wpsubdir'] || $assoc_args['wpsubdom'] ) ? false : true;
+    $assoc_args['ssl'] = ! $skip_ssl;
     $assoc_args['config'] = json_encode( $assoc_args );
+
+    if ( $assoc_args['ssl'] && ! $this->has_ssl( $assoc_args['domain'] ) ) {
+      WP_CLI::error( "SSL certificates for {$assoc_args['domain']} can not be found." );
+    }
 
     $force = Utils\get_flag_value( $assoc_args, 'force' );
     $package_root = dirname( dirname( __FILE__ ) );
@@ -378,6 +391,53 @@ class SiteCommand {
     }
   }
 
+  /**
+   * @when before_wp_load
+   */
+  public function site_ssl( $args, $assoc_args ) {
+    $assoc_args = array_merge( static::DEFAULTS, $assoc_args );
+    $assoc_args['domain'] = $args[0];
+
+
+    $client = DockerClient::getInstance();
+    $containers =  $client->find_containers( array(
+      'status' => array( 'running' ),
+      'name' => array( 'deve_web' )
+    ) );
+
+    foreach ( $containers->getDecodedBody() as $container ) {
+      $name = $container->Names[0];
+      $code = $client->stop_container( $container->Id )->getStatusCode();
+      if ( $code === 204 || $code === 304 ) {
+        WP_CLI::line( "Container {$name} stopped." );
+      } else {
+        WP_CLI::error( "Error stopping {$name}!" );
+      }
+    }
+
+    $ssl = $client->run( array(
+      'Image' => 'certbot/certbot',
+      'Binds' => array( 'deve_ssl:/etc/letsencrypt' ),
+      'PortBindings' => array( '80/tcp' => array( array( 'HostPort' => '80' ) ) ),
+      'Cmd' => array( 'certonly', '--standalone', '--dry-run', '--agree-tos', '-m', 'thomas@stachl.me', '-d', $assoc_args['domain'] )
+    ) );
+    if ( $ssl ) {
+      WP_CLI::success( 'The SSL certificate has been created.' );
+    } else {
+      WP_CLI::error( 'Could not create the certificate.' );
+    }
+
+    foreach ( $containers->getDecodedBody() as $container ) {
+      $name = $container->Names[0];
+      $code = $client->start_container( $container->Id )->getStatusCode();
+      if ( $code === 204 || $code === 304 ) {
+        WP_CLI::line( "Container {$name} started." );
+      } else {
+        WP_CLI::error( "Error starting {$name}!" );
+      }
+    }
+  }
+
   private function prompt_if_files_will_be_overwritten( $filename, $force ) {
     $should_write_file = true;
     if ( ! file_exists( $filename ) ) {
@@ -440,5 +500,10 @@ class SiteCommand {
     }
 
     rmdir( $dir );
+  }
+
+  private function has_ssl( $domain ) {
+    $dir = "/etc/letsencrypt/live/{$domain}";
+    return file_exists( "{$dir}/fullchain.pem" ) && file_exists( "{$dir}/privkey.pem" );
   }
 }

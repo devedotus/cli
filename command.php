@@ -14,6 +14,6 @@ WP_CLI::add_command( 'deve site delete', array( 'Deve_CLI\SiteCommand', 'site_de
 WP_CLI::add_command( 'deve site list', array( 'Deve_CLI\SiteCommand', 'site_list' ) );
 WP_CLI::add_command( 'deve site activate', array( 'Deve_CLI\SiteCommand', 'site_activate' ) );
 WP_CLI::add_command( 'deve site deactivate', array( 'Deve_CLI\SiteCommand', 'site_deactivate' ) );
-// WP_CLI::add_command( 'deve site ssl', array( 'Deve_CLI\SiteCommand', 'site_ssl' ) );
+WP_CLI::add_command( 'deve site ssl', array( 'Deve_CLI\SiteCommand', 'site_ssl' ) );
 
 WP_CLI::add_command( 'deve server restart', array( 'Deve_CLI\RestartCommand', 'restart' ) );

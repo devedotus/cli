@@ -26,32 +26,19 @@ map $http_host $blogid {
 server {
   listen 80{{# default-server }} default_server{{/ default-server }};
   listen [::]:80{{# default-server }} default_server {{/ default-server }}ipv6only=on;
-  server_name {{ domain }};
-  return 301 https://$host/$request_uri;
-}
 
-server {
-  listen 443{{# default-server }} default_server {{/ default-server }}ssl http2;
-  listen [::]:443{{# default-server }} default_server {{/ default-server }}ssl http2 ipv6only=on;
-  
   server_name {{ domain }};
   root /var/www/{{ domain }};
   index index.php;
 
-  ssl on;
-  ssl_certificate /etc/letsencrypt/live/{{ domain }}/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/{{ domain }}/privkey.pem;
-  ssl_trusted_certificate /etc/letsencrypt/live/{{ domain }}/fullchain.pem;
-  include global/ssl.conf;
-  
   {{# pagespeed }}
   include global/pagespeed.conf;
   {{/ pagespeed }}
-  
+
   include global/headers.conf;
-  
+
   include global/gzip.conf;
-  
+
   {{# wpce }}
   include global/cache/cache-enabler.conf;
   {{/ wpce }}
@@ -83,7 +70,7 @@ server {
   {{# wpsubdom }}
   include global/wordpress-ms-subdomain.conf;
   {{/ wpsubdom }}
-  
+
   location ~ \.php$ {
     try_files $uri =404;
 
@@ -107,3 +94,83 @@ server {
     {{/ wpfc }}
   }
 }
+
+{{# ssl }}
+server {
+  listen 443{{# default-server }} default_server {{/ default-server }}ssl http2;
+  listen [::]:443{{# default-server }} default_server {{/ default-server }}ssl http2 ipv6only=on;
+
+  server_name {{ domain }};
+  root /var/www/{{ domain }};
+  index index.php;
+
+  ssl on;
+  ssl_certificate /etc/letsencrypt/live/{{ domain }}/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/{{ domain }}/privkey.pem;
+  ssl_trusted_certificate /etc/letsencrypt/live/{{ domain }}/fullchain.pem;
+  include global/ssl.conf;
+
+  {{# pagespeed }}
+  include global/pagespeed.conf;
+  {{/ pagespeed }}
+
+  include global/headers.conf;
+
+  include global/gzip.conf;
+
+  {{# wpce }}
+  include global/cache/cache-enabler.conf;
+  {{/ wpce }}
+  {{# wpfc }}
+  include global/cache/fastcgi-cache.conf;
+  {{/ wpfc }}
+  {{# wpsc }}
+  include global/cache/super-cache.conf;
+  {{/ wpsc }}
+  {{# w3tc }}
+  include global/cache/w3-total-cache.conf;
+  {{/ w3tc }}
+
+  include global/restrictions.conf;
+
+  location / {
+    # This is cool because no php is touched for static content.
+    # include the "?$args" part so non-default permalinks doesn't break when using query string
+    try_files $uri $uri/ /index.php?$args;
+  }
+
+  # Specific for type of WordPress Installation
+  {{# wpss }}
+  include global/wordpress.conf;
+  {{/ wpss }}
+  {{# wpsubdir }}
+  include global/wordpress-ms-subdir.conf;
+  {{/ wpsubdir }}
+  {{# wpsubdom }}
+  include global/wordpress-ms-subdomain.conf;
+  {{/ wpsubdom }}
+
+  location ~ \.php$ {
+    try_files $uri =404;
+
+    include fastcgi_params;
+
+    fastcgi_read_timeout 360s;
+    fastcgi_buffer_size 128k;
+    fastcgi_buffers 4 256k;
+    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+
+    fastcgi_pass unix:/tmp/php-{{ domain }}.socket;
+
+    fastcgi_index index.php;
+    fastcgi_intercept_errors on;
+
+    {{# wpfc }}
+    fastcgi_cache_bypass $skip_cache;
+    fastcgi_no_cache $skip_cache;
+    fastcgi_cache {{ domain }};
+    fastcgi_cache_valid 60m;
+    {{/ wpfc }}
+  }
+}
+{{/ ssl }}
