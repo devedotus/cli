@@ -8,15 +8,15 @@ use WP_CLI\Utils;
 use Deve_CLI\Docker\DockerClient;
 
 class RestartCommand {
-	/**
-	 * Restart the Nginx and PHP Docker containers.
-	 *
-	 * Default behavior is to restart the following containers:
-	 * - php
-	 * - web
+  /**
+   * Restart the Nginx and PHP Docker containers.
    *
-	 * @when before_wp_load
-	 */
+   * Default behavior is to restart the following containers:
+   * - php
+   * - web
+   *
+   * @when before_wp_load
+   */
   public function restart( $args, $assoc_args ) {
     WP_CLI::log( 'Trying to restart containers.' );
     
