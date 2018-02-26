@@ -196,7 +196,7 @@ class SiteCommand {
   }
 
   /**
-   * Generate the configuration for nginx, php and create the folder.
+   * Deletes the sites configuration and data.
    *
    * Default behavior is to delete the following files:
    * - domain.conf (/etc/nginx/sites-available)
@@ -412,14 +412,20 @@ class SiteCommand {
    * [--dry-run]
    * : Only test if certificates would work.
    *
+   * [--verbose]
+   * : Run this command verbose.
+   *
    * @when before_wp_load
    */
   public function site_ssl( $args, $assoc_args ) {
+    $verbose = Utils\get_flag_value( $assoc_args, 'verbose' );
     $assoc_args = array_merge( static::DEFAULTS, $assoc_args );
     $domain = $args[0];
     $email = $args[1];
 
-    $client = DockerClient::getInstance();
+    if ( $verbose ) WP_CLI::debug( "domain [{$domain}] email [{$email}]" );
+
+    $client = DockerClient::getInstance( $verbose );
     $containers =  $client->find_containers( array(
       'status' => array( 'running' ),
       'name' => array( 'deve_web' )
@@ -434,15 +440,17 @@ class SiteCommand {
         WP_CLI::error( "Error stopping {$name}!" );
       }
     }
-
-    $cmd = array( 'certonly', '--standalone', '-n', '--agree-tos', '-m', $email, '-d', $domain );
+    // $dir = '/opt/certbot';
+    $cmd = array(
+      'certonly', '--standalone', '-n', '--agree-tos', '-m', $email, '-d', $domain //, '--http-01-port', '6789',
+      // '--config-dir', "{$dir}/etc", '--logs-dir', "{$dir}/logs", '--work-dir', "{$dir}/lib"
+    );
     if (Utils\get_flag_value( $assoc_args, 'dry-run' ) ) {
       array_push( $cmd, '--dry-run' );
     }
-
     $ssl = $client->run( array(
       'Image' => 'certbot/certbot',
-      'Binds' => array( 'deve_ssl:/etc/letsencrypt' ),
+      'Binds' => array( "deve_ssl:/etc/letsencrypt" ),
       'PortBindings' => array( '80/tcp' => array( array( 'HostPort' => '80' ) ) ),
       'Cmd' => $cmd
     ) );

@@ -19,12 +19,19 @@ class DockerClient {
    * Docker Client Instance
    */
   private $instance;
+  
+  /**
+   * Should we debug?
+   */
+  private $verbose;
 
-  private function __construct() {}
+  private function __construct( $verbose ) {
+    $this->verbose = $verbose;
+  }
 
-  public static function getInstance() {
+  public static function getInstance( $verbose = false ) {
     if ( $instance === null ) {
-      $instance = new DockerClient();
+      $instance = new DockerClient( $verbose );
     }
     return $instance;
   }
@@ -50,6 +57,8 @@ class DockerClient {
     $container_id = $container->getDecodedBody()->Id;
     $this->request( "/containers/{$container_id}/start", 'POST' );
     $status = $this->request( "/containers/{$container_id}/wait", 'POST' );
+    if ( $this->verbose )
+      $this->request( "/containers/{$container_id}/logs?follow=true&stdout=true&stderr=true", 'GET' );
     $this->request( "/containers/{$container_id}", 'DELETE' );
     if ( $status->getDecodedBody()->StatusCode === 0 ) {
       return true;
@@ -65,10 +74,11 @@ class DockerClient {
     curl_setopt( $ch, CURLOPT_HTTPHEADER, array( 'Content-Type: application/json' ) );
     curl_setopt( $ch, CURLOPT_RETURNTRANSFER, 1 );
     curl_setopt( $ch, CURLOPT_URL, "http:/{$version}{$endpoint}" );
-    curl_setopt( $ch, CURLOPT_VERBOSE, false );
+    curl_setopt( $ch, CURLOPT_VERBOSE, $this->verbose );
 
     if ( 'POST' === $method ) {
       curl_setopt( $ch, CURLOPT_POST, 1 );
+      if ( $this->verbose ) var_dump( json_encode( $data ) );
       curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $data ) );
     } elseif ( 'GET' !== $method ) {
       curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, $method );
@@ -78,6 +88,7 @@ class DockerClient {
 
     try {
       $response->setBody( curl_exec( $ch ) );
+      if ( $this->verbose ) var_dump( $response->getBody() );
       $response->setStatusCode( curl_getinfo( $ch, CURLINFO_HTTP_CODE ) );
     } catch (Exception $e) {
       $response = null;

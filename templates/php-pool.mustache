@@ -1,7 +1,8 @@
 [{{ domain }}]
+user = www-data
 
 listen = /tmp/php-{{ domain }}.socket
-listen.owner = www-data
+listen.owner = root
 listen.mode = 0666
 
 php_admin_value[disable_functions] = exec,passthru,shell_exec,system

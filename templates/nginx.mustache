@@ -54,12 +54,6 @@ server {
 
   include global/restrictions.conf;
 
-  location / {
-    # This is cool because no php is touched for static content.
-    # include the "?$args" part so non-default permalinks doesn't break when using query string
-    try_files $uri $uri/ /index.php?$args;
-  }
-
   # Specific for type of WordPress Installation
   {{# wpss }}
   include global/wordpress.conf;
@@ -132,12 +126,6 @@ server {
   {{/ w3tc }}
 
   include global/restrictions.conf;
-
-  location / {
-    # This is cool because no php is touched for static content.
-    # include the "?$args" part so non-default permalinks doesn't break when using query string
-    try_files $uri $uri/ /index.php?$args;
-  }
 
   # Specific for type of WordPress Installation
   {{# wpss }}
