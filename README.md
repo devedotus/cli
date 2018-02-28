@@ -24,40 +24,40 @@ $ wp deve site list
 
 # Create a site
 $ wp deve site create dev.deve.us --skip-ssl
-Configuration files have been created.
-WWW directory has been created.
+Configuration files created.
+WWW directory created.
 Success: Site `dev.deve.us` created.
 
 # Add SSL
 $ wp deve site ssl dev.deve.us
-letsencrypt.org certificates have been created.
-Nginx configuration has been updated.
-Nginx configuration test successful.
+letsencrypt.org certificates created.
+Nginx configuration updated.
+Nginx test successful.
 Nginx reload successful.
-Success: SSL has been enabled for `dev.deve.us`.
+Success: SSL enabled for `dev.deve.us`.
 
 # Activate a site
 $ wp deve site activate dev.deve.us
-Configuration has been linked.
-Nginx configuration test successful.
+Configuration linked.
+Nginx test successful.
 Nginx reload successful.
-PHP configuration test successful.
+PHP test successful.
 PHP reload successful.
-Success: Site `dev.deve.us` has been activated.
+Success: Site `dev.deve.us` activated.
 
 # Deactivate a site
 $ wp deve site deactivate dev.deve.us
-Configuration has been unlinked.
+Configuration unlinked.
 Nginx reload successful.
 PHP reload successful.
-Success: Site `dev.deve.us` has been deactivated.
+Success: Site `dev.deve.us` deactivated.
 
 # Delete a site
 $ wp deve site delete dev.deve.us
-Configuration has been removed.
-WWW directory has been archived.
-WWW folder has been removed.
-Success: Site `dev.deve.us` has been deleted.
+Configuration removed.
+WWW directory archived.
+WWW folder removed.
+Success: Site `dev.deve.us` deleted.
 ```
 
 ## Installing

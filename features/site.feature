@@ -36,3 +36,15 @@ Feature: Work with sites in Deve
     Then the nginx/sites-available/test.deve.us.conf file should exist
     Then the php/php-available/test.deve.us.conf file should exist
     Then the www/test.deve.us directory should exist
+
+  Scenario: A site is successfully created
+    Given an empty directory
+
+    When I run `wp deve site create test.deve.us --skip-ssl  --nginx-dir=nginx --php-dir=php --www-dir=www`
+    Then STDOUT should be:
+      """
+      Configuration files created.
+      WWW directory created.
+      Success: Site `test.deve.us` created.
+      """
+

@@ -174,16 +174,20 @@ class SiteCommand {
       "{$assoc_args['php-dir']}/php-available/{$assoc_args['domain']}.conf"   => Utils\mustache_render( "{$template_path}/php-pool.mustache", $assoc_args )
     ), $force, 'file_put_contents' );
 
+    WP_CLI::log( 'Configuration files created.' );
+
     // create the www root dir
     $wwwdir = "{$assoc_args['www-dir']}/{$assoc_args['domain']}";
     if ( ! is_dir( $wwwdir ) ) {
       Process::create( Utils\esc_cmd( 'mkdir -p %s', $wwwdir ) )->run();
     }
 
+    WP_CLI::log( 'WWW directory created.' );
+
     if ( empty( $files_written ) ) {
       WP_CLI::log( 'All configuration files were skipped.' );
     } else {
-      WP_CLI::success( 'Created configuration files for nginx and php.' );
+      WP_CLI::success( "Site `{$assoc_args['domain']}` created." );
     }
 
     if ( Utils\get_flag_value( $assoc_args, 'activate' ) ) {
