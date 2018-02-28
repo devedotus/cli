@@ -3,7 +3,11 @@ deve/cli
 
 WP-CLI package for Simple Wordpress Orchestration
 
-[![Build Status](https://travis-ci.org/devedotus/cli.svg?branch=master)](https://travis-ci.org/devedotus/cli)
+[![Build Status](https://img.shields.io/travis/devedotus/cli.svg)](https://travis-ci.org/devedotus/cli)
+[![Packagist](https://img.shields.io/packagist/dm/doctrine/orm.svg)](https://packagist.org/packages/deve/cli)
+[![Packagist Pre Release](https://img.shields.io/packagist/v/deve/cli.svg)](https://packagist.org/packages/deve/cli)
+[![PHP from Packagist](https://img.shields.io/packagist/php-v/deve/cli.svg)](https://packagist.org/packages/deve/cli)
+[![GitHub watchers](https://img.shields.io/github/watchers/devedotus/cli.svg?style=social&logo=github&label=Watch)](https://github.com/devedotus/cli/watchers)
 
 Quick links: [Using](#using) | [Installing](#installing) | [Contributing](#contributing) | [Support](#support)
 

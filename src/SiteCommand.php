@@ -9,6 +9,11 @@ use WP_CLI\Formatter;
 use Deve_CLI\Docker\DockerClient;
 
 class SiteCommand {
+  const NGINX_DIR = 'nginx-dir';
+  const PHP_DIR   = 'php-dir';
+  const WWW_DIR   = 'www-dir';
+  const DOMAIN    = 'domain';
+
   const DEFAULTS = array(
     'w3tc' => false,
     'wpsc' => false,
@@ -22,9 +27,9 @@ class SiteCommand {
     'activate' => false,
     'force' => false,
     'ssl' => true,
-    'nginx-dir' => '/etc/nginx',
-    'php-dir' => '/usr/local/etc',
-    'www-dir' => '/var/www'
+    self::NGINX_DIR => '/etc/nginx',
+    self::PHP_DIR => '/usr/local/etc',
+    self::WWW_DIR => '/var/www'
   );
 
   /**
@@ -64,11 +69,12 @@ class SiteCommand {
   public function site_list( $_, $assoc_args ) {
     $assoc_args = array_merge( static::DEFAULTS, $assoc_args );
 
-    $files = glob( "{$assoc_args['nginx-dir']}/sites-available/*.conf" );
-    if ( ! is_dir( "{$assoc_args['nginx-dir']}/sites-enabled" ) )
+    $files = glob( "{$assoc_args[self::NGINX_DIR]}/sites-available/*.conf" );
+    if ( ! is_dir( "{$assoc_args[self::NGINX_DIR]}/sites-enabled" ) ) {
       $enabled = array();
-    else
-      $enabled = glob( "{$assoc_args['nginx-dir']}/sites-enabled/*.conf" );
+    } else {
+      $enabled = glob( "{$assoc_args[self::NGINX_DIR]}/sites-enabled/*.conf" );
+    }
 
     foreach ( $files as $key => $file ) {
       $active = in_array( $file, $enabled ) !== null;
@@ -82,7 +88,7 @@ class SiteCommand {
       $files[$key] = $file;
     }
 
-    $formatter = new WP_CLI\Formatter( $assoc_args, array( 'domain', 'active', 'default-server', 'ssl' ) );
+    $formatter = new WP_CLI\Formatter( $assoc_args, array( self::DOMAIN, 'active', 'default-server', 'ssl' ) );
     $formatter->display_items( $files );
   }
 
@@ -154,15 +160,15 @@ class SiteCommand {
     unset( $assoc_args['skip-ssl'] );
 
     $assoc_args = array_merge( static::DEFAULTS, $assoc_args );
-    $assoc_args['domain'] = $args[0];
+    $assoc_args[self::DOMAIN] = $args[0];
 
     // if neither wpsubdir nor wpsubdom are set it's a single site
     $assoc_args['wpss'] = ( $assoc_args['wpsubdir'] || $assoc_args['wpsubdom'] ) ? false : true;
     $assoc_args['ssl'] = ! $skip_ssl;
     $assoc_args['config'] = json_encode( $assoc_args );
 
-    if ( $assoc_args['ssl'] && ! $this->has_ssl( $assoc_args['domain'] ) ) {
-      WP_CLI::error( "SSL certificates for {$assoc_args['domain']} can not be found." );
+    if ( $assoc_args['ssl'] && ! $this->has_ssl( $assoc_args[self::DOMAIN] ) ) {
+      WP_CLI::error( "SSL certificates for {$assoc_args[self::DOMAIN]} can not be found." );
     }
 
     $force = Utils\get_flag_value( $assoc_args, 'force' );
@@ -170,14 +176,14 @@ class SiteCommand {
     $template_path = $package_root . '/templates';
 
     $files_written = $this->process_files( array(
-      "{$assoc_args['nginx-dir']}/sites-available/{$assoc_args['domain']}.conf" => Utils\mustache_render( "{$template_path}/nginx.mustache", $assoc_args ),
-      "{$assoc_args['php-dir']}/php-available/{$assoc_args['domain']}.conf"   => Utils\mustache_render( "{$template_path}/php-pool.mustache", $assoc_args )
+      "{$assoc_args[self::NGINX_DIR]}/sites-available/{$assoc_args[self::DOMAIN]}.conf" => Utils\mustache_render( "{$template_path}/nginx.mustache", $assoc_args ),
+      "{$assoc_args[self::PHP_DIR]}/php-available/{$assoc_args[self::DOMAIN]}.conf"   => Utils\mustache_render( "{$template_path}/php-pool.mustache", $assoc_args )
     ), $force, 'file_put_contents' );
 
     WP_CLI::log( 'Configuration files created.' );
 
     // create the www root dir
-    $wwwdir = "{$assoc_args['www-dir']}/{$assoc_args['domain']}";
+    $wwwdir = "{$assoc_args[self::WWW_DIR]}/{$assoc_args[self::DOMAIN]}";
     if ( ! is_dir( $wwwdir ) ) {
       Process::create( Utils\esc_cmd( 'mkdir -p %s', $wwwdir ) )->run();
     }
@@ -187,14 +193,14 @@ class SiteCommand {
     if ( empty( $files_written ) ) {
       WP_CLI::log( 'All configuration files were skipped.' );
     } else {
-      WP_CLI::success( "Site `{$assoc_args['domain']}` created." );
+      WP_CLI::success( "Site `{$assoc_args[self::DOMAIN]}` created." );
     }
 
     if ( Utils\get_flag_value( $assoc_args, 'activate' ) ) {
-      $command = "deve site activate {$assoc_args['domain']} " .
-                        "--nginx-dir={$assoc_args['nginx-dir']} " .
-                        "--php-dir={$assoc_args['php-dir']} " .
-                        "--www-dir={$assoc_args['www-dir']}";
+      $command = "deve site activate {$assoc_args[self::DOMAIN]} " .
+                        "--nginx-dir={$assoc_args[self::NGINX_DIR]} " .
+                        "--php-dir={$assoc_args[self::PHP_DIR]} " .
+                        "--www-dir={$assoc_args[self::WWW_DIR]}";
       WP_CLI::runcommand( $command, array( 'launch' => false ) );
     }
   }
@@ -258,32 +264,32 @@ class SiteCommand {
    */
   public function site_delete($args, $assoc_args) {
     $assoc_args = array_merge( static::DEFAULTS, $assoc_args );
-    $assoc_args['domain'] = $args[0];
+    $assoc_args[self::DOMAIN] = $args[0];
 
-    $command = "deve site deactivate {$assoc_args['domain']} " .
-                      "--nginx-dir={$assoc_args['nginx-dir']} " .
-                      "--php-dir={$assoc_args['php-dir']} " .
-                      "--www-dir={$assoc_args['www-dir']}";
+    $command = "deve site deactivate {$assoc_args[self::DOMAIN]} " .
+                      "--nginx-dir={$assoc_args[self::NGINX_DIR]} " .
+                      "--php-dir={$assoc_args[self::PHP_DIR]} " .
+                      "--www-dir={$assoc_args[self::WWW_DIR]}";
     WP_CLI::runcommand( $command, array( 'launch' => true, 'exit_error' => false, 'return' => 'all' ) );
 
-    $nginx = "{$assoc_args['nginx-dir']}/sites-available/{$assoc_args['domain']}.conf";
-    $php = "{$assoc_args['php-dir']}/php-available/{$assoc_args['domain']}.conf";
+    $nginx = "{$assoc_args[self::NGINX_DIR]}/sites-available/{$assoc_args[self::DOMAIN]}.conf";
+    $php = "{$assoc_args[self::PHP_DIR]}/php-available/{$assoc_args[self::DOMAIN]}.conf";
 
     if ( ! file_exists( $nginx ) ) {
-      WP_CLI::error( "Nginx configuration for '{$assoc_args['domain']}' does not exist." );
+      WP_CLI::error( "Nginx configuration for '{$assoc_args[self::DOMAIN]}' does not exist." );
     }
 
     if ( ! file_exists( $php ) ) {
-      WP_CLI::error( "PHP pool configuration for '{$assoc_args['domain']}' does not exist." );
+      WP_CLI::error( "PHP pool configuration for '{$assoc_args[self::DOMAIN]}' does not exist." );
     }
 
     $nginx = unlink( $nginx );
     $php = unlink( $php );
-    $this->delete_dir( "{$assoc_args['www-dir']}/{$assoc_args['domain']}" );
+    $this->delete_dir( "{$assoc_args[self::WWW_DIR]}/{$assoc_args[self::DOMAIN]}" );
 
     if ( !$nginx || !$php ) {
-      if ( !$nginx ) WP_CLI::log( 'Nginx configuration could not be removed.' );
-      if ( !$php ) WP_CLI::log( 'PHP configuration could not be removed.' );
+      if ( !$nginx ) { WP_CLI::log( 'Nginx configuration could not be removed.' ); }
+      if ( !$php ) { WP_CLI::log( 'PHP configuration could not be removed.' ); }
     } else {
       WP_CLI::success( 'Unlinked configuration files for nginx and php.' );
     }
@@ -317,16 +323,16 @@ class SiteCommand {
    */
   public function site_activate( $args, $assoc_args ) {
     $assoc_args = array_merge( static::DEFAULTS, $assoc_args );
-    $assoc_args['domain'] = $args[0];
-    $nginx_available = "{$assoc_args['nginx-dir']}/sites-available/{$assoc_args['domain']}.conf";
-    $php_available = "{$assoc_args['php-dir']}/php-available/{$assoc_args['domain']}.conf";
+    $assoc_args[self::DOMAIN] = $args[0];
+    $nginx_available = "{$assoc_args[self::NGINX_DIR]}/sites-available/{$assoc_args[self::DOMAIN]}.conf";
+    $php_available = "{$assoc_args[self::PHP_DIR]}/php-available/{$assoc_args[self::DOMAIN]}.conf";
 
     if ( ! file_exists( $nginx_available ) ) {
-      WP_CLI::error( "Nginx configuration for '{$assoc_args['domain']}' does not exist." );
+      WP_CLI::error( "Nginx configuration for '{$assoc_args[self::DOMAIN]}' does not exist." );
     }
 
     if ( ! file_exists( $php_available ) ) {
-      WP_CLI::error( "PHP pool configuration for '{$assoc_args['domain']}' does not exist." );
+      WP_CLI::error( "PHP pool configuration for '{$assoc_args[self::DOMAIN]}' does not exist." );
     }
 
     $nginx_enabled = str_replace( '/sites-available/', '/sites-enabled/', $nginx_available );
@@ -371,25 +377,25 @@ class SiteCommand {
    */
   public function site_deactivate( $args, $assoc_args ) {
     $assoc_args = array_merge( static::DEFAULTS, $assoc_args );
-    $assoc_args['domain'] = $args[0];
+    $assoc_args[self::DOMAIN] = $args[0];
 
-    $nginx_enabled = "{$assoc_args['nginx-dir']}/sites-enabled/{$assoc_args['domain']}.conf";
-    $php_enabled = "{$assoc_args['php-dir']}/php-fpm.d/{$assoc_args['domain']}.conf";
+    $nginx_enabled = "{$assoc_args[self::NGINX_DIR]}/sites-enabled/{$assoc_args[self::DOMAIN]}.conf";
+    $php_enabled = "{$assoc_args[self::PHP_DIR]}/php-fpm.d/{$assoc_args[self::DOMAIN]}.conf";
 
     if ( ! file_exists( $nginx_enabled ) ) {
-      WP_CLI::error( "Nginx configuration for '{$assoc_args['domain']}' does not exist." );
+      WP_CLI::error( "Nginx configuration for '{$assoc_args[self::DOMAIN]}' does not exist." );
     }
 
     if ( ! file_exists( $php_enabled ) ) {
-      WP_CLI::error( "PHP pool configuration for '{$assoc_args['domain']}' does not exist." );
+      WP_CLI::error( "PHP pool configuration for '{$assoc_args[self::DOMAIN]}' does not exist." );
     }
 
     $nginx = unlink( $nginx_enabled );
     $php = unlink( $php_enabled );
 
     if ( !$nginx || !$php ) {
-      if ( !$nginx ) WP_CLI::log( 'Nginx configuration could not be removed.' );
-      if ( !$php ) WP_CLI::log( 'PHP configuration could not be removed.' );
+      if ( !$nginx ) { WP_CLI::log( 'Nginx configuration could not be removed.' ); }
+      if ( !$php ) { WP_CLI::log( 'PHP configuration could not be removed.' ); }
     } else {
       WP_CLI::success( 'Unlinked configuration files for nginx and php.' );
     }
@@ -427,7 +433,7 @@ class SiteCommand {
     $domain = $args[0];
     $email = $args[1];
 
-    if ( $verbose ) WP_CLI::debug( "domain [{$domain}] email [{$email}]" );
+    if ( $verbose ) { WP_CLI::debug( "domain [{$domain}] email [{$email}]" ); }
 
     $client = DockerClient::getInstance( $verbose );
     $containers =  $client->find_containers( array(
@@ -444,7 +450,7 @@ class SiteCommand {
         WP_CLI::error( "Error stopping {$name}!" );
       }
     }
-    // $dir = '/opt/certbot';
+
     $cmd = array(
       'certonly', '--standalone', '-n', '--agree-tos', '-m', $email, '-d', $domain //, '--http-01-port', '6789',
       // '--config-dir', "{$dir}/etc", '--logs-dir', "{$dir}/logs", '--work-dir', "{$dir}/lib"
@@ -484,11 +490,7 @@ class SiteCommand {
     WP_CLI::log( $filename );
     if ( ! $force ) {
       do {
-        $answer = \cli\prompt(
-          'Skip this file, or replace it with scaffolding?',
-          $default = false,
-          $marker = '[s/r]: '
-        );
+        $answer = \cli\prompt( 'Skip this file, or replace it with scaffolding?', false, '[s/r]: ' );
       } while ( ! in_array( $answer, array( 's', 'r' ) ) );
       $should_write_file = 'r' === $answer;
     }
@@ -525,14 +527,14 @@ class SiteCommand {
   }
 
   private function delete_dir( $dir ) {
-    if ( ! is_dir( $dir ) )
-      return;
-    if ( substr( $dir, strlen( $dir ) - 1, 1 ) != '/' )
+    if ( ! is_dir( $dir ) ) { return; }
+    if ( substr( $dir, strlen( $dir ) - 1, 1 ) != '/' ) {
       $dir .= '/';
+    }
 
     $files = glob( $dir . '*', GLOB_MARK );
     foreach ( $files as $file ) {
-      if ( is_dir( $file ) ) $this->delete_dir( $file );
+      if ( is_dir( $file ) ) { $this->delete_dir( $file ); }
       unlink( $file );
     }
 
