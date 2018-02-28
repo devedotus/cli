@@ -8,8 +8,57 @@ WP-CLI package for Simple Wordpress Orchestration
 Quick links: [Using](#using) | [Installing](#installing) | [Contributing](#contributing) | [Support](#support)
 
 ## Using
+### wp deve site <command>
+Manages sites, including creation, activate and removal.
+#### Examples
+```sh
+# List sites
+$ wp deve site list
++-------------+--------+----------------+---------+
+| domain      | active | default-server | ssl     |
++-------------+--------+----------------+---------+
+| deve.us     | 1      | 1              | 1       |
+| dev.deve.us | 0      | 0              | 0       |
+| ssl.deve.us | 1      | 0              | 0       |
++-------------+--------+----------------+---------+
 
+# Create a site
+$ wp deve site create dev.deve.us --skip-ssl
+Configuration files have been created.
+WWW directory has been created.
+Success: Site `dev.deve.us` created.
 
+# Add SSL
+$ wp deve site ssl dev.deve.us
+letsencrypt.org certificates have been created.
+Nginx configuration has been updated.
+Nginx configuration test successful.
+Nginx reload successful.
+Success: SSL has been enabled for `dev.deve.us`.
+
+# Activate a site
+$ wp deve site activate dev.deve.us
+Configuration has been linked.
+Nginx configuration test successful.
+Nginx reload successful.
+PHP configuration test successful.
+PHP reload successful.
+Success: Site `dev.deve.us` has been activated.
+
+# Deactivate a site
+$ wp deve site deactivate dev.deve.us
+Configuration has been unlinked.
+Nginx reload successful.
+PHP reload successful.
+Success: Site `dev.deve.us` has been deactivated.
+
+# Delete a site
+$ wp deve site delete dev.deve.us
+Configuration has been removed.
+WWW directory has been archived.
+WWW folder has been removed.
+Success: Site `dev.deve.us` has been deleted.
+```
 
 ## Installing
 
