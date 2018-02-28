@@ -33,10 +33,10 @@ class SiteCommand {
    * ## OPTIONS
    *
    * [--field=<field>]
-   * : Prints the value of a single field for each update.
+   * : Prints the value of a single field for each site.
    *
    * [--fields=<fields>]
-   * : Limit the output to specific object fields. Defaults to version,update_type,package_url.
+   * : Limit the output to specific object fields. Defaults to domain,active,default-server,ssl.
    *
    * [--format=<format>]
    * : Render output in a particular format.
