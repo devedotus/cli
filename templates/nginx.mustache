@@ -65,6 +65,9 @@ server {
   include global/wordpress-ms-subdomain.conf;
   {{/ wpsubdom }}
 
+  resolver {{nameserver}} ipv6=off valid=60s;
+  set $upstream http://php:9000;
+
   location ~ \.php$ {
     try_files $uri =404;
 
@@ -138,6 +141,9 @@ server {
   include global/wordpress-ms-subdomain.conf;
   {{/ wpsubdom }}
 
+  resolver {{nameserver}} ipv6=off valid=60s;
+  set $upstream http://php:9000;
+
   location ~ \.php$ {
     try_files $uri =404;
 
@@ -148,7 +154,7 @@ server {
     fastcgi_buffers 4 256k;
     fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
 
-    fastcgi_pass unix:/tmp/php-{{ domain }}.socket;
+    fastcgi_pass $upstream;
 
     fastcgi_index index.php;
     fastcgi_intercept_errors on;
