@@ -8,4 +8,4 @@ install_db() {
 	mysql -e 'GRANT ALL PRIVILEGES ON wp_cli_test_scaffold.* TO "wp_cli_test"@"localhost" IDENTIFIED BY "password1"' -uroot
 }
 
-#install_db
+install_db

@@ -45,5 +45,8 @@ Once you've decided to commit the time to seeing your pull request through, [ple
 
 Github issues aren't for general support questions, but there are other venues you can try: https://wp-cli.org/#support
 
+## Testing
+
+Some Docker wizardry by @davegaeddert finally get's this project started testing.
 
 *This README.md is generated dynamically from the project's codebase using `wp scaffold package-readme` ([doc](https://github.com/wp-cli/scaffold-package-command#wp-scaffold-package-readme)). To suggest changes, please submit a pull request against the corresponding part of the codebase.*
