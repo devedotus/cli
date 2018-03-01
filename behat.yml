@@ -1,0 +1,11 @@
+default:
+  extensions:
+    LeanPHP\Behat\CodeCoverage\Extension:
+      auth:       ~
+      drivers:
+        - local
+      filter:     ~
+      report:
+        format: clover
+        options:
+          target: build/behat-coverage
