@@ -7,5 +7,4 @@ vendor/
 *.swp
 *.txt
 *.log
-composer.lock
 testing/

@@ -9,6 +9,8 @@ if ( file_exists( $autoload ) ) {
 	require_once $autoload;
 }
 
+WP_CLI::add_command( 'deve setup', array( 'Deve_CLI\SetupCommand', 'setup' ) );
+
 WP_CLI::add_command( 'deve site create', array( 'Deve_CLI\SiteCommand', 'site_create' ) );
 WP_CLI::add_command( 'deve site delete', array( 'Deve_CLI\SiteCommand', 'site_delete' ) );
 WP_CLI::add_command( 'deve site list', array( 'Deve_CLI\SiteCommand', 'site_list' ) );
