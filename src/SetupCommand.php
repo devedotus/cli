@@ -28,14 +28,27 @@ class SetupCommand {
     $final_args = array_merge( $assoc_args, array(
       'database' => getenv( 'DEVE_DATABASE' ),
       'user' => getenv( 'DEVE_USER' ),
-      'password' => getenv( 'DEVE_DATABASE_PASSWORD' )
+      'db_password' => getenv( 'DEVE_DATABASE_PASSWORD' ),
+      'domain' => getenv( 'DEVE_DOMAIN' ),
+      'url' => 'http://' . getenv( 'DEVE_DOMAIN' ),
+      'title' => getenv( 'DEVE_TITLE' ),
+      'password' => getenv( 'DEVE_PASSWORD' ),
+      'email' => getenv( 'DEVE_EMAIL' )
     ) );
+    $final_args['path'] = "/var/www/{$final_args['domain']}";
+    $cmd_args = array( 'launch' => true, 'exit_error' => false );
 
-    WP_CLI::log( "CREATE DATABASE IF NOT EXISTS {$final_args['database']};" );
-    self::run( "CREATE DATABASE IF NOT EXISTS {$final_args['database']};" );
-    self::run( "CREATE USER '{$final_args['user']}'@'%' IDENTIFIED BY '{$final_args['password']}';" );
-    self::run( "GRANT ALL PRIVILEGES ON {$final_args['database']}.* TO '{$final_args['user']}'@'%';" );
-    self::run( "FLUSH PRIVILEGES;" );
+    // set up the database for our wordpress install
+    // self::run_query( "CREATE DATABASE IF NOT EXISTS {$final_args['database']};" );
+    self::run_query( "CREATE USER IF NOT EXISTS '{$final_args['user']}'@'%' IDENTIFIED BY '{$final_args['db_password']}';" );
+    self::run_query( "GRANT ALL PRIVILEGES ON {$final_args['database']}.* TO '{$final_args['user']}'@'%';" );
+    self::run_query( "FLUSH PRIVILEGES;" );
+
+    // create the directory and download wordpress core
+    WP_CLI::runcommand( "core download --path={$final_args['path']} --quiet", $cmd_args );
+    WP_CLI::runcommand( "core config --force --path={$final_args['path']} --dbname={$final_args['database']} --dbuser={$final_args['user']} --dbpass={$final_args['db_password']} --dbhost=mysql", $cmd_args );
+    WP_CLI::runcommand( "db create --path={$final_args['path']}", $cmd_args );
+    WP_CLI::runcommand( "core install --skip-email --path={$final_args['path']} --url={$final_args['url']} --title='{$final_args['title']}' --admin_user={$final_args['user']} --admin_password={$final_args['password']} --admin_email={$final_args['email']}", $cmd_args );
 
     WP_CLI::success( 'This worked!' );
 
@@ -56,13 +69,17 @@ class SetupCommand {
     // # set -- wp "deve site create $DEVE_DOMAIN"
   }
 
-	private static function run( $cmd ) {
-		$required = array(
+	private static function run_query( $query ) {
+		self::run( '/usr/bin/env mysql --no-defaults --no-auto-rehash', array( 'execute' => $query ) );
+	}
+
+	private static function run( $cmd, $assoc_args = array(), $descriptors = null ) {
+		$required = array_merge( $assoc_args, array(
 			'host' => 'mysql',
 			'user' => 'root',
 			'pass' => getenv( 'MYSQL_ROOT_PASSWORD' ),
       'default-character-set' => 'utf8'
-		);
-		Utils\run_mysql_command( $cmd, $required, null );
+		));
+		Utils\run_mysql_command( $cmd, $required, $descriptors );
 	}
 }

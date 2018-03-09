@@ -24,8 +24,8 @@ map $http_host $blogid {
 {{/ wpsubdom }}
 
 server {
-  listen 80{{# default-server }} default_server{{/ default-server }};
-  listen [::]:80{{# default-server }} default_server {{/ default-server }}ipv6only=on;
+  listen 8080{{# default-server }} default_server{{/ default-server }};
+  listen [::]:8080{{# default-server }} default_server {{/ default-server }}ipv6only=on;
 
   server_name {{ domain }};
   root /var/www/{{ domain }};
@@ -65,8 +65,8 @@ server {
   include global/wordpress-ms-subdomain.conf;
   {{/ wpsubdom }}
 
-  resolver {{nameserver}} ipv6=off valid=60s;
-  set $upstream http://php:9000;
+  resolver 127.0.0.11 ipv6=off valid=60s;
+  set $upstream php:9000;
 
   location ~ \.php$ {
     try_files $uri =404;
@@ -78,7 +78,7 @@ server {
     fastcgi_buffers 4 256k;
     fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
 
-    fastcgi_pass unix:/tmp/php-{{ domain }}.socket;
+    fastcgi_pass $upstream;
 
     fastcgi_index index.php;
     fastcgi_intercept_errors on;
@@ -94,8 +94,8 @@ server {
 
 {{# ssl }}
 server {
-  listen 443{{# default-server }} default_server {{/ default-server }}ssl http2;
-  listen [::]:443{{# default-server }} default_server {{/ default-server }}ssl http2 ipv6only=on;
+  listen 4433{{# default-server }} default_server {{/ default-server }}ssl http2;
+  listen [::]:4433{{# default-server }} default_server {{/ default-server }}ssl http2 ipv6only=on;
 
   server_name {{ domain }};
   root /var/www/{{ domain }};
@@ -141,8 +141,8 @@ server {
   include global/wordpress-ms-subdomain.conf;
   {{/ wpsubdom }}
 
-  resolver {{nameserver}} ipv6=off valid=60s;
-  set $upstream http://php:9000;
+  resolver 127.0.0.11 ipv6=off valid=60s;
+  set $upstream php:9000;
 
   location ~ \.php$ {
     try_files $uri =404;

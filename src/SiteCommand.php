@@ -177,7 +177,7 @@ class SiteCommand {
 
     $files_written = $this->process_files( array(
       "{$assoc_args[self::NGINX_DIR]}/sites-available/{$assoc_args[self::DOMAIN]}.conf" => Utils\mustache_render( "{$template_path}/nginx.mustache", $assoc_args ),
-      "{$assoc_args[self::PHP_DIR]}/php-available/{$assoc_args[self::DOMAIN]}.conf"   => Utils\mustache_render( "{$template_path}/php-pool.mustache", $assoc_args )
+      // "{$assoc_args[self::PHP_DIR]}/php-available/{$assoc_args[self::DOMAIN]}.conf"   => Utils\mustache_render( "{$template_path}/php-pool.mustache", $assoc_args )
     ), $force, 'file_put_contents' );
 
     WP_CLI::log( 'Configuration files created.' );
@@ -325,22 +325,22 @@ class SiteCommand {
     $assoc_args = array_merge( static::DEFAULTS, $assoc_args );
     $assoc_args[self::DOMAIN] = $args[0];
     $nginx_available = "{$assoc_args[self::NGINX_DIR]}/sites-available/{$assoc_args[self::DOMAIN]}.conf";
-    $php_available = "{$assoc_args[self::PHP_DIR]}/php-available/{$assoc_args[self::DOMAIN]}.conf";
+    // $php_available = "{$assoc_args[self::PHP_DIR]}/php-available/{$assoc_args[self::DOMAIN]}.conf";
 
     if ( ! file_exists( $nginx_available ) ) {
       WP_CLI::error( "Nginx configuration for '{$assoc_args[self::DOMAIN]}' does not exist." );
     }
 
-    if ( ! file_exists( $php_available ) ) {
-      WP_CLI::error( "PHP pool configuration for '{$assoc_args[self::DOMAIN]}' does not exist." );
-    }
+    // if ( ! file_exists( $php_available ) ) {
+    //   WP_CLI::error( "PHP pool configuration for '{$assoc_args[self::DOMAIN]}' does not exist." );
+    // }
 
     $nginx_enabled = str_replace( '/sites-available/', '/sites-enabled/', $nginx_available );
-    $php_enabled = str_replace( '/php-available/', '/php-fpm.d/', $php_available );
+    // $php_enabled = str_replace( '/php-available/', '/php-fpm.d/', $php_available );
 
     $files_linked = $this->process_files( array(
       $nginx_enabled => $nginx_available,
-      $php_enabled => $php_available
+      // $php_enabled => $php_available
     ), false, 'symlink');
 
     if ( empty( $files_linked ) ) {
